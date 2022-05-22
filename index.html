@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello world Three.js x Rapier3d.js</title>
+    <script src="./three.min.js"></script>
+    <script src="./OrbitControls.js"></script>
+</head>
+
+<body>
+
+    <script type="module">
+        import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
+
+        // Crate Scene.
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0)
+        // Create Camera.
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 50;
+        // Create Render.
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        // Create controls for the scene.
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // Array of Geometrys.
+        let bodys = []
+        // Create Cube with Rapier physics.
+        const createCube = async (Rapier, world, x, y, z) => {
+            // Create Geometry.
+            const geometry = new THREE.BoxGeometry();
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const cube = new THREE.Mesh(geometry, material);
+            // Add Geometry to the Scene.
+            scene.add(cube);
+            // Create newDynamic Body.
+            const bodyType = RAPIER.RigidBodyDesc.newDynamic();
+            // Set Cube position.
+            cube.position.set(x, y, z);
+            // Set Rapier physics Position.
+            bodyType.setTranslation(x, y, z)
+            // Creatre RigiBody Type
+            const rigidBody = world.createRigidBody(bodyType);
+            const colliderDescType = RAPIER.ColliderDesc.cuboid(.5, 1, .5);
+            world.createCollider(colliderDescType, rigidBody.handle);
+            // Push Geometry with physics to the Array Geometry Physics.
+            bodys.push({ rigid: rigidBody, mesh: cube });
+        }
+
+        // Create Floor with Rapier physics
+        const createFloor = async (RAPIER, world, x, y, z) => {
+            // Create Geometry.
+            const geometry = new THREE.BoxGeometry(20, 2, 20);
+            const material = new THREE.MeshBasicMaterial({ color: 'white', side: THREE.DoubleSide });
+            const floor = new THREE.Mesh(geometry, material);
+            // Add Geometry to the Scene.
+            scene.add(floor);
+            // Create newDynamic Body.
+            const bodyType = RAPIER.RigidBodyDesc.newStatic();
+            // Set floor position.
+            floor.position.set(x, y, z);
+            // Set Rapier physics Position.
+            bodyType.setTranslation(x, y, z);
+            // Creatre RigiBody Type
+            const rigidBody = world.createRigidBody(bodyType);
+            const colliderDescType = RAPIER.ColliderDesc.cuboid(12, .5, 20);
+            world.createCollider(colliderDescType, rigidBody.handle);
+            // Push Geometry with physics to the Array Geometry Physics.
+            bodys.push({ rigid: rigidBody, mesh: floor });
+        }
+
+        // INIT Rapier.
+
+        (async () => {
+            await RAPIER.init();
+            // Set an gravity for the Work
+            let gravity = { x: 0.0, y: -9.81, z: 0.0 };
+            let world = new RAPIER.World(gravity);
+            // Create an array object with the cube positions.
+            const positions = [
+                { x: -14, y: 0, z: 0 },
+                { x: -12, y: 0, z: 0 },
+                { x: -10, y: 0, z: 0 },
+                { x: -8, y: 0, z: 0 },
+                { x: -6, y: 0, z: 0 },
+                { x: -4, y: 0, z: 0 },
+                { x: -2, y: 0, z: 0 },
+                { x: 0, y: 0, z: 0 },
+                { x: 2, y: 0, z: 0 },
+                { x: 4, y: 0, z: 0 },
+                { x: 6, y: 0, z: 0 },
+                { x: 8, y: 0, z: 0 },
+                { x: 10, y: 0, z: 0 },
+                { x: 12, y: 0, z: 0 },
+                { x: 14, y: 0, z: 0 }
+            ];
+            // Add Cubes.
+            positions.forEach(async e => {
+                const random = Math.floor(Math.random() * (20 - 1 + 1) + 1);
+                await createCube(RAPIER, world, e.x, random, e.z);
+            });
+            // Add Floor.
+            await createFloor(RAPIER, world, 0, 0, 0)
+            // Game Loop / Scene Loop.
+            let gameLoop = () => {
+
+                world.step();
+
+                //Iterate all geometries with their physics.
+                bodys.forEach(body => {
+                    // get the position and rotation of the physics in real time and add them to the mesh of the 3d geometries.
+                    let position = body.rigid.translation();
+                    let rotation = body.rigid.rotation();
+
+                    body.mesh.position.x = position.x;
+                    body.mesh.position.y = position.y;
+                    body.mesh.position.z = position.z;
+
+                    body.mesh.setRotationFromQuaternion(
+                        new THREE.Quaternion(
+                            rotation.x,
+                            rotation.y,
+                            rotation.z,
+                            rotation.w
+                        )
+                    )
+                });
+                // Render the graphics in 3d.
+                renderer.render(scene, camera);
+                setTimeout(gameLoop, 16);
+            }
+            gameLoop();
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-# three.js-with-physics-Rapier.js
+# Three.js-with-physics-Rapier.js
 This is a small demo of how to implement the Rapier.js Physics Engine with the THREE..js Graphics Library.
 
 
